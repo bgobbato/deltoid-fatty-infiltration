@@ -1,0 +1,13 @@
+.venv
+dados
+saida
+output
+docs
+*.pdf
+*.nii
+*.nii.gz
+**/__pycache__
+.pytest_cache
+*.egg-info
+.claude
+.git

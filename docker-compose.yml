@@ -1,0 +1,14 @@
+# Local:  docker compose up -d --build   ->  http://localhost:8080
+services:
+  dfdi:
+    build: .
+    image: dfdi:local
+    container_name: dfdi
+    ports:
+      - "127.0.0.1:8080:8080"     # only this computer; the VPS puts Caddy (HTTPS + login) in front
+    volumes:
+      - ./dados:/data             # cases, results.csv (never in the image, never in git)
+    environment:
+      - TZ=America/Sao_Paulo      # result timestamps in local time
+    restart: unless-stopped
+    mem_limit: 6g

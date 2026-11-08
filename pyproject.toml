@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dfdi"
+version = "0.1.0"
+description = "Motor de medicao do Deltoid Fatty Degeneration Index (DFDI) em TC NIfTI + mascara"
+requires-python = ">=3.10"
+dependencies = ["numpy>=1.24", "nibabel>=5.0", "scipy>=1.10", "matplotlib>=3.7"]
+
+[project.scripts]
+dfdi = "dfdi.measure:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]

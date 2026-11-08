@@ -1,0 +1,13 @@
+# Motor de medicao DFDI (Python >= 3.10)
+numpy>=1.24
+nibabel>=5.0
+scipy>=1.10
+matplotlib>=3.7
+# testes
+pytest>=7
+# opcionais (nao usados pelo motor): SimpleITK, pyradiomics, pingouin
+# pagina web (fase 2)
+fastapi>=0.110
+uvicorn[standard]>=0.29
+python-multipart>=0.0.9
+dcm2niix>=1.0.20240202

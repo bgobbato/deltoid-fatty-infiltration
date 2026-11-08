@@ -1,0 +1,516 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DFDI deltoid</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='8' r='7' fill='%23e5484d'/%3E%3C/svg%3E">
+<style>
+  :root {
+    --bg: #f6f7f9; --panel: #ffffff; --ink: #1d2330; --muted: #667085;
+    --line: #d9dee7; --accent: #1f6feb; --accent-ink: #ffffff; --warn: #b54708; --ok: #067647;
+    --viewer: #000000; --delt: #e5484d; --excl: #30a46c;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0f1115; --panel: #171a21; --ink: #e6e8ee; --muted: #98a2b3;
+      --line: #2a303b; --accent: #4c8dff; --accent-ink: #0b0d12; --warn: #f79009; --ok: #47cd89;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0f1115; --panel: #171a21; --ink: #e6e8ee; --muted: #98a2b3;
+    --line: #2a303b; --accent: #4c8dff; --accent-ink: #0b0d12; --warn: #f79009; --ok: #47cd89;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body { background: var(--bg); color: var(--ink); font: 14px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif;
+         display: grid; grid-template-columns: 310px 1fr 320px; }
+  aside { background: var(--panel); border-right: 1px solid var(--line); padding: 14px; overflow-y: auto; min-height: 0; }
+  aside.right { border-right: 0; border-left: 1px solid var(--line); }
+  main { position: relative; background: var(--viewer); min-height: 0; }
+  #gl { width: 100%; height: 100%; display: block; }
+  h1 { font-size: 16px; margin: 0 0 12px; }
+  h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin: 18px 0 6px; }
+  button, select, input[type=number] { font: inherit; color: var(--ink); background: var(--bg); border: 1px solid var(--line);
+         border-radius: 6px; padding: 5px 8px; }
+  button { cursor: pointer; }
+  button:disabled { opacity: .45; cursor: default; }
+  button.on { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+  button.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); width: 100%; padding: 8px; font-weight: 600; }
+  .row { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+  .drop { border: 1.5px dashed var(--line); border-radius: 8px; padding: 14px; text-align: center; color: var(--muted); cursor: pointer; }
+  .drop.over { border-color: var(--accent); color: var(--ink); }
+  .series { border: 1px solid var(--line); border-radius: 5px; padding: 3px 6px; margin: 3px 0; cursor: pointer;
+            font-size: 10.5px; line-height: 1.3; color: var(--muted); }
+  .series.on { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+  .series b { display: block; font-size: 11.5px; font-weight: 600; color: var(--ink);
+              white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .series .tag { display: inline-block; font-size: 9.5px; padding: 0 4px; border-radius: 3px; margin-left: 4px;
+                 background: var(--bg); border: 1px solid var(--line); color: var(--ink); vertical-align: 1px; }
+  .series.extra { display: none; }
+  #seriesList.all .series.extra { display: block; }
+  #moreSeries { font-size: 11px; padding: 2px 6px; margin-top: 2px; }
+  .help { background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; margin: 0 0 6px; }
+  .help summary { cursor: pointer; font-weight: 600; font-size: 13px; }
+  .help ol { margin: 6px 0 4px; padding-left: 18px; font-size: 12px; }
+  .help li { margin: 3px 0; }
+  .help p { font-size: 11.5px; color: var(--muted); margin: 6px 0 0; }
+  .pick { margin: 3px 0; } .pick button { min-width: 150px; text-align: left; }
+  .pickbtn.armed { background: var(--warn); color: #fff; border-color: var(--warn); }
+  .warn { color: var(--warn); }
+  .ok { color: var(--ok); }
+  .muted { color: var(--muted); font-size: 12px; }
+  .swatch { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 4px; vertical-align: -1px; }
+  #status { min-height: 18px; }
+  #readout { position: absolute; left: 8px; bottom: 8px; color: #e6e8ee; background: rgba(0,0,0,.55);
+             padding: 4px 8px; border-radius: 4px; font: 12px ui-monospace, Menlo, monospace; pointer-events: none; }
+  #drawbadge { position: absolute; right: 8px; top: 8px; color: #fff; background: rgba(229,72,77,.85);
+               padding: 3px 8px; border-radius: 4px; font-size: 12px; display: none; }
+  input[type=range] { width: 100%; }
+  label.wl { display: flex; align-items: center; gap: 4px; font-size: 12px; }
+  label.wl input { width: 70px; }
+  label.chk { display: flex; gap: 6px; align-items: flex-start; font-size: 13px; margin: 4px 0; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  td { padding: 3px 0; border-bottom: 1px solid var(--line); }
+  td.v { text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; }
+  tr.big td { font-size: 15px; }
+  #overlay { width: 100%; border-radius: 6px; margin-top: 8px; border: 1px solid var(--line); cursor: zoom-in; }
+  ul.flags { margin: 6px 0; padding-left: 18px; font-size: 12px; }
+  @media (max-width: 1100px) {
+    body { grid-template-columns: 1fr; grid-template-rows: auto 70vh auto; }
+    aside, aside.right { border: 0; border-bottom: 1px solid var(--line); }
+  }
+</style>
+</head>
+<body>
+<aside>
+  <h1>DFDI · deltoid</h1>
+  <details class="help" id="help" open>
+    <summary>How to measure (step by step)</summary>
+    <ol>
+      <li><b>Upload</b> the shoulder CT: a .zip with the DICOM folder (or a .nii.gz). Patient name is removed on conversion.</li>
+      <li><b>Series</b>: the soft-tissue series opens first. Prefer it to bone kernels.</li>
+      <li><b>Window</b>: <i>Muscle</i> (W400/L50) to see the deltoid fascia.</li>
+      <li><b>Reorient</b> (right panel, step 5): click the centre of the humeral canal on a low axial slice (<i>Shaft distal</i>) and just below the surgical neck (<i>Shaft proximal</i>), then <i>Reorient</i>. A new series marked ⟂ opens with the axial plane perpendicular to the shaft.</li>
+      <li><b>Reference slice</b>: scroll the axial to the first slice at the superior greater tuberosity with a circumferentially corticated tuberosity, humeral head visible and no surgical neck. Tick the three criteria.</li>
+      <li><b>Draw</b> the whole deltoid (anterior + middle + posterior) along the inner fascia with <i>Deltoid</i>; close the outline, it fills on release. Paint hematoma, fluid or fragments with <i>Exclude</i>. Bone (cortex + marrow) is removed automatically.</li>
+      <li><b>Calculate</b>: CSA (mm²), mean HU, DFDI and fat %. Check the QC image. <i>Download all results (CSV)</i> for the statistics.</li>
+    </ol>
+    <p>Method: Rescigno et al. 2026, Eur J Orthop Surg Traumatol 36:424 — one axial CT slice;
+      DFDI = 0.5(−Z<sub>HU</sub>) + 0.5(−Z<sub>CSA</sub>). Higher = more degeneration.
+      The DFDI shown uses the article's cohort mean/SD (approximation); recompute z-scores in your own cohort.</p>
+  </details>
+
+  <h2>1. Upload CT</h2>
+  <div id="drop" class="drop">Drop a .zip with DICOM or a .nii.gz here<br><span class="muted">or click to choose</span></div>
+  <input id="file" type="file" accept=".zip,.nii,.gz" hidden>
+  <div class="row" style="margin-top:8px">
+    <select id="cases" style="flex:1"><option value="">previous cases…</option></select>
+  </div>
+  <div id="status" class="muted"></div>
+
+  <h2>2. Series</h2>
+  <div id="seriesList" class="muted">No case open.</div>
+
+  <h2>3. Window</h2>
+  <div class="row" id="presets">
+    <button data-w="400" data-l="50">Muscle</button>
+    <button data-w="350" data-l="40">Soft tissue</button>
+    <button data-w="2000" data-l="500">Bone</button>
+  </div>
+  <div class="row" style="margin-top:6px">
+    <label class="wl">W <input id="ww" type="number" value="400"></label>
+    <label class="wl">L <input id="wlv" type="number" value="50"></label>
+  </div>
+
+  <h2>4. View</h2>
+  <div class="row" id="layouts">
+    <button data-t="multi" class="on">3 planes</button>
+    <button data-t="axial">Axial</button>
+    <button data-t="coronal">Coronal</button>
+    <button data-t="sagittal">Sagittal</button>
+  </div>
+
+  <h2>Axial slice</h2>
+  <input id="slice" type="range" min="0" max="0" value="0" disabled>
+  <div id="sliceLabel" class="muted">—</div>
+  <p class="muted">Mouse wheel: change slice. Right-drag: window. Click: move crosshair (when not drawing).</p>
+</aside>
+
+<main>
+  <canvas id="gl"></canvas>
+  <div id="readout">—</div>
+  <div id="drawbadge">Drawing</div>
+</main>
+
+<aside class="right">
+  <h2 style="margin-top:0">5. Reorient to the humeral shaft</h2>
+  <p class="muted" style="margin:0 0 4px">Click a button, then click the point on the image (any view).
+    Shaft centre: scroll the axial to each level and click the centre of the medullary canal.</p>
+  <div id="picks">
+    <div class="row pick"><button data-k="p_dist" class="pickbtn" disabled>Shaft distal</button><span class="muted" id="v_p_dist">—</span></div>
+    <div class="row pick"><button data-k="p_prox" class="pickbtn" disabled>Shaft proximal</button><span class="muted" id="v_p_prox">—</span></div>
+    <div class="row pick"><button data-k="g_ant" class="pickbtn" disabled>Glenoid anterior rim</button><span class="muted" id="v_g_ant">optional</span></div>
+    <div class="row pick"><button data-k="g_post" class="pickbtn" disabled>Glenoid posterior rim</button><span class="muted" id="v_g_post">optional</span></div>
+  </div>
+  <p class="muted">Proximal point: just below the surgical neck. Distal: as low as the CT goes (≥ 2 cm apart).
+    Glenoid rim points set the coronal plane parallel to the scapula (does not change CSA/HU).</p>
+  <button id="reorient" class="primary" disabled>Reorient</button>
+  <div id="reoInfo" class="muted" style="margin-top:6px"></div>
+
+  <h2>6. Reference slice (article)</h2>
+  <p class="muted" style="margin:0 0 4px">First craniocaudal slice at the superior greater tuberosity with:</p>
+  <label class="chk"><input type="checkbox" class="crit" data-k="gt_circumferential_cortex"> greater tuberosity with circumferential cortex</label>
+  <label class="chk"><input type="checkbox" class="crit" data-k="humeral_head_visible"> humeral head visible</label>
+  <label class="chk"><input type="checkbox" class="crit" data-k="no_surgical_neck"> no surgical neck</label>
+  <p class="muted" id="reoWarn">This series is <b>not reoriented</b>. If the shaft is tilted, CSA is overestimated (by 1/cos of the tilt).</p>
+
+  <h2>7. Draw deltoid</h2>
+  <div class="row" id="pens">
+    <button id="penDelt" data-pen="1" data-fill="1" disabled><span class="swatch" style="background:var(--delt)"></span>Deltoid</button>
+    <button id="penExcl" data-pen="2" data-fill="1" disabled><span class="swatch" style="background:var(--excl)"></span>Exclude</button>
+    <button id="penErase" data-pen="0" data-fill="1" disabled>Erase area</button>
+  </div>
+  <div class="row" style="margin-top:6px">
+    <button id="penOff" disabled>Stop drawing</button>
+    <button id="undo" disabled>Undo</button>
+    <button id="clear" disabled>Clear</button>
+  </div>
+  <label class="wl" style="margin-top:8px">Opacity <input id="opacity" type="range" min="0" max="1" step="0.05" value="0.5" style="width:140px"></label>
+  <label class="chk" style="margin-top:8px"><input type="checkbox" id="boneExcl" checked>
+    Exclude bone automatically (cortex + marrow of all bones)</label>
+  <label class="chk"><input type="checkbox" id="boneShow" disabled>
+    <span><span class="swatch" style="background:#3b82f6"></span>Show bone mask</span></label>
+  <p class="muted">Trace a closed outline along the inner fascia (anterior + middle + posterior deltoid); it fills on release.
+    Use <b>Exclude</b> over hematoma, fluid or fragments. Draw on <b>one axial slice</b> only.</p>
+  <div id="live" class="muted">—</div>
+
+  <h2>8. Measure</h2>
+  <button id="calc" class="primary" disabled>Calculate</button>
+  <div id="result" style="margin-top:8px"></div>
+  <p class="muted"><a href="/api/results.csv">Download all results (CSV)</a></p>
+</aside>
+
+<script src="https://unpkg.com/@niivue/niivue@0.69.0/dist/niivue.umd.js"></script>
+<script>
+const $ = (id) => document.getElementById(id);
+const nv = new niivue.Niivue({
+  backColor: [0, 0, 0, 1],
+  show3Dcrosshair: false,
+  crosshairColor: [0.2, 0.8, 1, 0.8],
+  isRadiologicalConvention: true,   // patient's right on screen left, as in PACS
+  dragMode: niivue.DRAG_MODE.contrast,
+});
+nv.attachToCanvas($('gl'));
+nv.setSliceType(nv.sliceTypeMultiplanar);
+nv.setDrawOpacity(0.5);
+
+const state = { case: null, series: null, drawing: false };
+const pxArea = () => { const v = nv.volumes[0]; return v ? v.pixDimsRAS[1] * v.pixDimsRAS[2] : 0; };
+
+function setStatus(t, warn = false) { $('status').textContent = t; $('status').className = warn ? 'warn' : 'muted'; }
+
+/* ---------- window ---------- */
+function applyWL(w, l) {
+  const v = nv.volumes[0]; if (!v) return;
+  v.cal_min = l - w / 2; v.cal_max = l + w / 2;
+  nv.updateGLVolume();
+  $('ww').value = Math.round(w); $('wlv').value = Math.round(l);
+}
+$('presets').addEventListener('click', (e) => {
+  const b = e.target.closest('button'); if (b) applyWL(+b.dataset.w, +b.dataset.l);
+});
+['ww', 'wlv'].forEach(id => $(id).addEventListener('change', () => applyWL(+$('ww').value, +$('wlv').value)));
+nv.onIntensityChange = (vol) => {
+  $('ww').value = Math.round(vol.cal_max - vol.cal_min);
+  $('wlv').value = Math.round((vol.cal_max + vol.cal_min) / 2);
+};
+
+/* ---------- view ---------- */
+const LAYOUT = { multi: () => nv.sliceTypeMultiplanar, axial: () => nv.sliceTypeAxial,
+                 coronal: () => nv.sliceTypeCoronal, sagittal: () => nv.sliceTypeSagittal };
+function setLayout(t) {
+  document.querySelectorAll('#layouts button').forEach(x => x.classList.toggle('on', x.dataset.t === t));
+  nv.setSliceType(LAYOUT[t]());
+}
+$('layouts').addEventListener('click', (e) => {
+  const b = e.target.closest('button'); if (!b) return;
+  if (state.drawing && b.dataset.t !== 'axial') stopDrawing();
+  setLayout(b.dataset.t);
+});
+
+/* ---------- slice + HU readout ---------- */
+nv.onLocationChange = (d) => {
+  const vox = d.vox || [0, 0, 0];
+  const hu = d.values && d.values[0] ? d.values[0].value : NaN;
+  $('readout').textContent = `voxel ${vox.join(', ')}  ·  ${Number.isFinite(hu) ? hu.toFixed(0) + ' HU' : ''}`;
+  const z = vox[2];
+  if ($('slice').value != z) $('slice').value = z;
+  $('sliceLabel').textContent = `slice ${z} of ${+$('slice').max}`;
+};
+$('slice').addEventListener('input', () => {
+  if (!nv.volumes[0]) return;
+  const cur = nv.frac2vox(nv.scene.crosshairPos);
+  nv.scene.crosshairPos = nv.vox2frac([cur[0], cur[1], +$('slice').value]);
+  nv.drawScene(); nv.createOnLocationChange();
+});
+
+/* ---------- drawing ---------- */
+function drawingStats() {
+  // drawBitmap is in NiiVue's RAS grid: index = x + y*nx + z*nx*ny
+  const bm = nv.drawBitmap, v = nv.volumes[0];
+  if (!bm || !v) return null;
+  const [, nx, ny, nz] = v.dimsRAS, plane = nx * ny;
+  const delt = new Map(), excl = new Map();
+  for (let i = 0; i < bm.length; i++) {
+    const b = bm[i]; if (!b) continue;
+    const z = Math.floor(i / plane);
+    const m = b === 1 ? delt : b === 2 ? excl : null;
+    if (m) m.set(z, (m.get(z) || 0) + 1);
+  }
+  return { delt, excl };
+}
+function updateLive() {
+  const s = drawingStats();
+  if (!s || s.delt.size === 0) { $('live').textContent = 'Nothing drawn yet.'; $('calc').disabled = true; return; }
+  const slices = [...s.delt.keys()];
+  const px = [...s.delt.values()].reduce((a, b) => a + b, 0);
+  let t = `Drawn: ${(px * pxArea()).toFixed(0)} mm² on slice ${slices.join(', ')}`;
+  if (s.excl.size) t += ` · excluded ${[...s.excl.values()].reduce((a, b) => a + b, 0)} px`;
+  if (slices.length > 1) t += ' — draw on ONE slice only';
+  $('live').innerHTML = slices.length > 1 ? `<span class="warn">${t}</span>` : t;
+  $('calc').disabled = slices.length !== 1;
+}
+nv.onDrawingChanged = () => updateLive();
+
+function startDrawing(btn) {
+  if (!nv.volumes[0]) return;
+  if (!nv.drawBitmap) nv.createEmptyDrawing();
+  setLayout('axial');
+  nv.setDrawingEnabled(true);
+  nv.opts.penSize = 1;
+  nv.setPenValue(+btn.dataset.pen, btn.dataset.fill === '1');
+  state.drawing = true;
+  document.querySelectorAll('#pens button').forEach(x => x.classList.toggle('on', x === btn));
+  $('drawbadge').style.display = 'block';
+  $('drawbadge').textContent = 'Drawing: ' + btn.textContent.trim();
+}
+function stopDrawing() {
+  nv.setDrawingEnabled(false);
+  state.drawing = false;
+  document.querySelectorAll('#pens button').forEach(x => x.classList.remove('on'));
+  $('drawbadge').style.display = 'none';
+}
+document.querySelectorAll('#pens button').forEach(b => b.addEventListener('click', () => startDrawing(b)));
+$('penOff').onclick = stopDrawing;
+$('undo').onclick = () => { nv.drawUndo(); updateLive(); };
+$('clear').onclick = () => {
+  if (!confirm('Clear the whole drawing?')) return;
+  nv.closeDrawing(); nv.createEmptyDrawing(); updateLive();
+};
+$('opacity').oninput = (e) => nv.setDrawOpacity(+e.target.value);
+function enableDrawTools(on) {
+  ['penDelt', 'penExcl', 'penErase', 'penOff', 'undo', 'clear', 'boneShow'].forEach(id => $(id).disabled = !on);
+}
+
+/* ---------- bone mask overlay (computed on the server, cached) ---------- */
+async function showBone(on) {
+  const has = nv.volumes.length > 1;
+  if (!on) { if (has) nv.removeVolume(nv.volumes[1]); return; }
+  if (has) return;
+  $('boneShow').disabled = true; setStatus('Computing bone mask… (first time only)');
+  try {
+    const url = `/api/cases/${state.case}/series/${encodeURIComponent(state.series.file)}/bone.nii.gz`;
+    await nv.addVolumeFromUrl({ url, name: 'bone.nii.gz', colormap: 'blue', opacity: 0.4, cal_min: 0.5, cal_max: 1 });
+    setStatus('Bone mask shown (blue). It is removed from the ROI when “Exclude bone” is on.');
+  } catch (e) { setStatus('Bone mask failed: ' + e.message, true); $('boneShow').checked = false; }
+  finally { $('boneShow').disabled = false; }
+}
+$('boneShow').addEventListener('change', (e) => showBone(e.target.checked));
+
+
+/* ---------- reorientation (phase 4) ---------- */
+const picks = {};
+let armed = null;
+document.querySelectorAll('.pickbtn').forEach(b => b.addEventListener('click', () => {
+  if (state.drawing) stopDrawing();
+  armed = armed === b.dataset.k ? null : b.dataset.k;
+  document.querySelectorAll('.pickbtn').forEach(x => x.classList.toggle('armed', x.dataset.k === armed));
+  setStatus(armed ? `Click the image to set: ${b.textContent}` : '');
+}));
+$('gl').addEventListener('mouseup', () => {
+  if (!armed || state.drawing || !nv.volumes[0]) return;
+  setTimeout(() => {   // after NiiVue moved the crosshair
+    const mm = nv.frac2mm(nv.scene.crosshairPos);
+    picks[armed] = [mm[0], mm[1], mm[2]].map(Number);
+    const vox = nv.frac2vox(nv.scene.crosshairPos);
+    $('v_' + armed).textContent = `slice ${vox[2]} · (${picks[armed].map(v => v.toFixed(1)).join(', ')}) mm`;
+    document.querySelector(`.pickbtn[data-k="${armed}"]`).classList.remove('armed');
+    armed = null; setStatus('Point set.');
+    updateReorientButton();
+  }, 0);
+});
+function updateReorientButton() {
+  $('reorient').disabled = !(picks.p_prox && picks.p_dist) || !!state.series?.reoriented;
+  if (picks.p_prox && picks.p_dist) {
+    const v = picks.p_prox.map((x, i) => x - picks.p_dist[i]);
+    const len = Math.hypot(...v), ang = Math.acos(Math.abs(v[2]) / len) * 180 / Math.PI;
+    $('reoInfo').textContent = `Shaft points ${len.toFixed(0)} mm apart · tilt vs scanner axis ${ang.toFixed(1)}°` +
+      ` → native CSA would be ~${((1 / Math.cos(ang * Math.PI / 180) - 1) * 100).toFixed(1)}% too large`;
+  }
+}
+function resetPicks() {
+  for (const k of Object.keys(picks)) delete picks[k];
+  $('v_p_dist').textContent = '—'; $('v_p_prox').textContent = '—';
+  $('v_g_ant').textContent = 'optional'; $('v_g_post').textContent = 'optional';
+  $('reoInfo').textContent = '';
+}
+$('reorient').onclick = async () => {
+  if (drawingStats()?.delt.size && !confirm('Reorienting opens a new series and discards the current drawing. Continue?')) return;
+  $('reorient').disabled = true; setStatus('Reorienting… (resampling the CT on the server)');
+  const body = { series: state.series.file, p_prox: picks.p_prox, p_dist: picks.p_dist };
+  if (picks.g_ant && picks.g_post) { body.g_ant = picks.g_ant; body.g_post = picks.g_post; }
+  try {
+    const r = await fetch(`/api/cases/${state.case}/reorient`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    const j = await r.json();
+    if (!r.ok) throw new Error(j.detail || 'reorientation failed');
+    const lst = await (await fetch(`/api/cases/${state.case}/series`)).json();
+    nv.drawBitmap && drawingStats()?.delt.size && nv.closeDrawing();
+    showSeries(state.case, lst.series, j.series.file);
+    setStatus(`Reoriented (tilt ${j.info.shaft_angle_vs_S_axis_deg.toFixed(1)}°). Now pick the reference slice and draw.`);
+  } catch (e) { setStatus(e.message, true); updateReorientButton(); }
+};
+
+/* ---------- measure ---------- */
+const ROWS = [
+  ['csa_mm2', 'CSA (mm²)', 0, true], ['hu_mean', 'HU mean', 1, true],
+  ['dfdi_article_approx', 'DFDI (article ref., approx.)', 2, true],
+  ['z_hu_article', 'Z HU (article)', 2], ['z_csa_article', 'Z CSA (article)', 2],
+  ['pct_fat_imat', 'Fat −190…−30 HU (%)', 1], ['pct_low_attenuation_lama', 'Low attenuation −29…29 (%)', 1],
+  ['pct_normal_attenuation_nama', 'Normal attenuation 30…150 (%)', 1],
+  ['lean_muscle_area_mm2', 'Lean muscle area (mm²)', 0], ['hu_mean_lean_muscle', 'HU lean muscle', 1],
+  ['hu_median', 'HU median', 0], ['hu_sd', 'HU SD', 1],
+  ['csa_mm2_raw', 'CSA before cleaning (mm²)', 0], ['hu_mean_raw', 'HU before cleaning', 1],
+  ['n_excluded_bone_mask_3d', 'Pixels removed by bone mask', 0],
+];
+const fmt = (v, d) => (v === null || v === undefined || Number.isNaN(v)) ? '—' : Number(v).toFixed(d);
+
+$('calc').onclick = async () => {
+  const v = nv.volumes[0]; if (!v || !state.series) return;
+  const checklist = {};
+  document.querySelectorAll('.crit').forEach(c => checklist[c.dataset.k] = c.checked);
+  if (!Object.values(checklist).every(Boolean) &&
+      !confirm('The reference-slice checklist is not complete. Calculate anyway?')) return;
+  $('calc').disabled = true; $('result').innerHTML = '<span class="muted">Measuring…</span>';
+  try {
+    const bytes = await v.saveToUint8Array('mask.nii.gz', nv.drawBitmap);  // back to native grid
+    const fd = new FormData();
+    fd.append('series', state.series.file);
+    fd.append('mask', new Blob([bytes], { type: 'application/gzip' }), 'mask.nii.gz');
+    fd.append('exclude_label', '2');
+    fd.append('checklist', JSON.stringify(checklist));
+    fd.append('bone_exclusion', $('boneExcl').checked ? 'true' : 'false');
+    const r = await fetch(`/api/cases/${state.case}/measure`, { method: 'POST', body: fd });
+    const j = await r.json();
+    if (!r.ok) throw new Error(j.detail || 'measurement failed');
+    showResult(j);
+  } catch (e) {
+    $('result').innerHTML = `<span class="warn">${e.message}</span>`;
+  } finally { updateLive(); }
+};
+function showResult(j) {
+  const s = j.summary;
+  let h = '<table>' + ROWS.map(([k, label, d, big]) =>
+    `<tr class="${big ? 'big' : ''}"><td>${label}</td><td class="v">${fmt(s[k], d)}</td></tr>`).join('') + '</table>';
+  h += '<p class="muted">DFDI here uses the article cohort mean/SD (HU 42.9 ± 3.8; CSA 3651.6 ± 662.2 mm²). ' +
+       'This is an approximation: recompute z-scores within your own cohort.</p>';
+  h += j.flags.length ? `<div class="warn">Flags:</div><ul class="flags">${j.flags.map(f => `<li>${f}</li>`).join('')}</ul>`
+                      : '<div class="ok">No flags.</div>';
+  if (j.overlay) h += `<a href="${j.overlay}" target="_blank"><img id="overlay" src="${j.overlay}" alt="QC overlay"></a>`;
+  h += `<p class="muted">Run ${j.run} · <a href="${j.mask}">mask.nii.gz</a></p>`;
+  $('result').innerHTML = h;
+}
+
+/* ---------- upload / cases / series ---------- */
+async function upload(file) {
+  setStatus(`Uploading ${file.name}… (DICOM is converted on the server)`);
+  const fd = new FormData(); fd.append('file', file);
+  const r = await fetch('/api/cases', { method: 'POST', body: fd });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) { setStatus(j.detail || 'Upload failed', true); return; }
+  setStatus(`Case ${j.case}: ${j.series.length} series.`);
+  await refreshCases(j.case);
+  showSeries(j.case, j.series);
+}
+const drop = $('drop');
+drop.addEventListener('click', () => $('file').click());
+$('file').addEventListener('change', (e) => e.target.files[0] && upload(e.target.files[0]));
+drop.addEventListener('dragover', (e) => { e.preventDefault(); drop.classList.add('over'); });
+drop.addEventListener('dragleave', () => drop.classList.remove('over'));
+drop.addEventListener('drop', (e) => { e.preventDefault(); drop.classList.remove('over'); e.dataTransfer.files[0] && upload(e.dataTransfer.files[0]); });
+
+async function refreshCases(sel) {
+  const j = await (await fetch('/api/cases')).json();
+  $('cases').innerHTML = '<option value="">previous cases…</option>' +
+    j.cases.map(c => `<option ${c === sel ? 'selected' : ''}>${c}</option>`).join('');
+}
+$('cases').addEventListener('change', async (e) => {
+  const c = e.target.value; if (!c) return;
+  const j = await (await fetch(`/api/cases/${c}/series`)).json();
+  showSeries(c, j.series);
+});
+
+function showSeries(caseId, series, openFile) {
+  state.case = caseId;
+  const el = $('seriesList'); el.innerHTML = ''; el.classList.remove('all');
+  const SHOW = 3;   // the list is sorted: reoriented, soft tissue, most slices
+  series.forEach((s, i) => {
+    const d = document.createElement('div'); d.className = 'series' + (i >= SHOW ? ' extra' : '');
+    d.title = s.file;
+    if (s.error) { d.innerHTML = `<b>${s.file}</b><span class="warn">${s.error}</span>`; el.appendChild(d); return; }
+    const vx = s.voxel_mm.map(v => +v.toFixed(2));
+    d.innerHTML = `<b>${s.reoriented ? '⟂ ' : ''}${s.description}${s.soft_tissue ? '<span class="tag">soft tissue</span>' : ''}</b>
+      ${s.dims[2]} slices · ${vx[0]}×${vx[1]}×${vx[2]} mm${s.kernel ? ' · ' + s.kernel : ''}${s.kvp ? ' · ' + s.kvp + ' kVp' : ''}
+      ${s.warnings.length ? ' · <span class="warn">' + s.warnings.join('; ') + '</span>' : ''}`;
+    d.onclick = () => openSeries(s, d);
+    el.appendChild(d);
+    if (openFile ? s.file === openFile : i === 0) openSeries(s, d);
+  });
+  if (series.length > SHOW) {
+    const b = document.createElement('button'); b.id = 'moreSeries';
+    b.textContent = `Show ${series.length - SHOW} more`;
+    b.onclick = () => { el.classList.toggle('all'); b.textContent = el.classList.contains('all') ? 'Show fewer' : `Show ${series.length - SHOW} more`; };
+    el.appendChild(b);
+  }
+}
+
+async function openSeries(s, el) {
+  if (nv.drawBitmap && drawingStats()?.delt.size && !confirm('Opening another series discards the current drawing. Continue?')) return;
+  document.querySelectorAll('.series').forEach(x => x.classList.toggle('on', x === el));
+  setStatus(`Opening ${s.description}…`);
+  stopDrawing(); nv.closeDrawing(); $('boneShow').checked = false;
+  const url = `/api/cases/${state.case}/series/${encodeURIComponent(s.file)}`;
+  await nv.loadVolumes([{ url, name: s.file, colormap: 'gray' }]);
+  state.series = s;
+  const dims = nv.volumes[0].dims;  // [3, x, y, z]
+  $('slice').max = dims[3] - 1; $('slice').disabled = false;
+  applyWL(+$('ww').value, +$('wlv').value);
+  nv.scene.crosshairPos = [0.5, 0.5, 0.5]; nv.drawScene(); nv.createOnLocationChange();
+  enableDrawTools(true); $('result').innerHTML = ''; updateLive();
+  resetPicks();
+  document.querySelectorAll('.pickbtn').forEach(b => b.disabled = !!s.reoriented);
+  $('reoWarn').innerHTML = s.reoriented
+    ? `<span class="ok">Reoriented series (shaft tilt corrected: ${s.reorientation.shaft_angle_vs_S_axis_deg.toFixed(1)}°` +
+      `${s.reorientation.scapular_plane_from_glenoid ? ', coronal parallel to the scapula' : ''}).</span>`
+    : 'This series is <b>not reoriented</b>. If the shaft is tilted, CSA is overestimated (by 1/cos of the tilt).';
+  updateReorientButton();
+  setStatus(`${s.description} open.`);
+}
+
+try { if (localStorage.getItem('dfdi_help') === 'closed') $('help').open = false; } catch (e) {}
+$('help').addEventListener('toggle', () => { try { localStorage.setItem('dfdi_help', $('help').open ? 'open' : 'closed'); } catch (e) {} });
+refreshCases();
+</script>
+</body>
+</html>

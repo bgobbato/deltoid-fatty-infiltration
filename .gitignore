@@ -1,0 +1,19 @@
+.venv/
+__pycache__/
+*.pyc
+*.egg-info/
+.pytest_cache/
+saida/
+outputs/
+# dados de pacientes nunca entram no git
+dados/
+*.nii
+*.nii.gz
+output/
+# copyrighted article (Springer) and its full text: not in a public repo
+*.pdf
+docs/artigo_DFDI_texto.txt
+# contains the shared login
+docs/whatsapp_diego.txt
+.claude/
+.DS_Store
